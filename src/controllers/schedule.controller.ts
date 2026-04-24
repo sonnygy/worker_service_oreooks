@@ -4,7 +4,6 @@ import * as scheduleDb from '../repositoryes/schedule.repository.js';
 import * as userRepo from '../repositoryes/user.repository.js'
 import * as worker from '../utils/worker.js'
 
-
 export const getSchedule = async ( req:Request, res:Response) => {
  try {
    const tgId = Number(req.body.tgId);
