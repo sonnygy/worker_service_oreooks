@@ -1,75 +1,74 @@
 import type { Request, Response } from 'express'
 import * as scheduleService from '../services/orioks.schedule.service';
 import * as scheduleDb from '../repositoryes/schedule.repository';
-import * as userRepo from '../repositoryes/user.repository'
-import * as worker from '../utils/worker'
+import * as userRepository from '../repositoryes/user.repository'
+import * as scheduleUtils from '../utils/schedule'
+import { UserTgIdSchema, UserTgIdTypeDaySchema} from '../schemas/schedule.schema'
 
 export const getSchedule = async ( req:Request, res:Response) => {
  try {
-   const tgId = Number(req.body.tgId);
+   const parsed = await UserTgIdSchema.safeParse(req.body.data);
 
-   const userExists = await userRepo.userExists(tgId);
-
-   if (!userExists){
-      return res.status(404).json({ message:"User not found" });
+   if (!parsed.success) {
+      throw new Error("Некорректный ответ от BOT OREOOKS");
    }
 
-   const token = await userRepo.getTokenByTgId(tgId);
+   const tg_id = Number(parsed.data.tg_id);
+
+   const token = await userRepository.getTokenByTgId(tg_id);
 
    if (!token){
       return res.status(404).json({ message:"Token not found" });
    }
 
-   const exists = await scheduleDb.scheduleExist(tgId);
+   const scheduleExist = await scheduleDb.scheduleExist(tg_id);
 
-   if (!exists){
+   if (!scheduleExist){
       const schedules = await scheduleService.getSchedule(token);
-      await scheduleDb.createSchedules(tgId,schedules);
+      await scheduleDb.createSchedules(tg_id, schedules);
    }
 
    const weekType = await scheduleService.getWeekType( token );
-
-   const schedule = await scheduleDb.getScheduleWeek( tgId, weekType);
+   const schedule = await scheduleDb.getScheduleWeek( tg_id, weekType);
 
    return res.json(schedule);
- } catch(e){
+ } 
+ catch(e){
     return res.status(500).json({ message:"Server error" });
  }
 };
 
 export const getScheduleDay = async ( req:Request, res:Response ) => {
 
- try{
-  const tgId = Number(req.body.tgId);
+   try {
+      
+      const parsed = await UserTgIdTypeDaySchema.safeParse(req.body.data);
 
-  const type = req.query.type || "today";
+      if (!parsed.success) {
+         throw new Error("Некорректный ответ от BOT OREOOKS");
+      }
 
-  const userExists = await userRepo.userExists(tgId);
+      const {tg_id, type_day} = parsed.data;
 
-  if(!userExists){
-    return res.status(404).json({message:"User not found"});
-  }
+      const tgId = Number(tg_id);
 
-  const token =await userRepo.getTokenByTgId(tgId);
+      const type = type_day || "today";
 
-  if(!token){
-    return res.status(404).json({message:"Token not found"});
-  }
+      const token = await userRepository.getTokenByTgId(tgId);
 
-  const weekType = await scheduleService.getWeekType(token);
+      if(!token){
+         return res.status(404).json({message:"Token not found"});
+      }
 
-  const day = type === "tomorrow"? worker.getTomorrowDay(): worker.getTodayDay();
+      const weekType = await scheduleService.getWeekType(token);
 
-  const schedule = await scheduleDb.getScheduleToday(tgId,weekType,day);
+      const day = type === "tomorrow"? scheduleUtils.getTomorrowDay(): scheduleUtils.getTodayDay();
 
-  return res.json(schedule);
- }
- catch(e){
+      const schedule = await scheduleDb.getScheduleToday(tgId,weekType,day);
 
-   return res.status(500).json({
-      message:"Server error"
-   });
-
- }
-
+      return res.json(schedule);
+   }
+   catch(e){
+      return res.status(500).json({ message:"Server error"});
+   }
 };
