@@ -1,32 +1,41 @@
-import axios from 'axios';
-import { ORIOKS_AUTH_URL } from '../config/worker.config'
-import { createAuthHeader } from '../utils/worker'
+import axios, { AxiosError } from 'axios';
+import { AuthResponseSchema } from '../schemas/user.schema'
+import { ORIOKS_LINK } from '../config/env.config'
+import { createAuthHeader } from '../utils/auth'
 
-export const getToken = async (login:string, password:string) => {
-
-    const authHeader = createAuthHeader(login,password);
+export const getToken = async (login:string, password:string): Promise<string> => {
+    const authHeader = createAuthHeader(login, password);
 
     try { 
-        const response = await axios.get(ORIOKS_AUTH_URL, {
+        const response = await axios.get(`${ORIOKS_LINK}/api/v1/auth`, {
         headers: {
             'Accept': 'application/json',
             'Authorization': authHeader,
-            'User-Agent': 'bot_oreooks/0.1 Node.js/24.14.1'
+            'User-Agent': 'Oreooks-bot/1.0 Windows 11'
         }});
 
-        return response.data.token;
-    } catch (e: any) {
-        const status = e?.response?.status;
+        const parsed = AuthResponseSchema.safeParse(response.data);
 
-        if (status === 401) {
-            throw new Error('Неверный логин или пароль');
+        if (!parsed.success) {
+            throw new Error('API не вернул токен');
         }
 
-        if (status === 403) {
-            throw new Error('Студент не может получить более восьми токенов');
-        }
+        return parsed.data.token;
+    } catch (e: unknown) {
+        if (axios.isAxiosError(e)) {
+            const status = e.response?.status;
+            const message = e.response?.data;
 
-        throw new Error('Ошибка запроса к ORIOKS');
+            if (status === 401) {
+                throw new Error('Неверный логин или пароль');
+            }
+
+            if (status === 403) {
+                throw new Error('Студент не может получить более восьми токенов');
+            }
+        }
+        
+        throw new Error('Неизвестная ошибка при запросе токена ORIOKS');
     }
-}
+};
  

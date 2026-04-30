@@ -14,7 +14,7 @@ export const WeekTypeLabel = {
   3: "2з",
 };
 
-export interface ScheduleDTO {
+export type ScheduleDTO = {
   semester: string;
   week: number;
   weekType: number;
@@ -22,7 +22,7 @@ export interface ScheduleDTO {
   lessons: LessonDTO[];
 }
 
-export interface LessonDTO {
+export type LessonDTO = {
   lesson_number: number
   lesson_name: string
   lesson_type: string

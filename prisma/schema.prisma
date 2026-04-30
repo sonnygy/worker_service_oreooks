@@ -1,32 +1,61 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
 
 model User {
-  tgId      Int        @id
-  token     String
-  schedules Schedule[]
+    tg_id    Int      @id
+    token    String
+    tasks    Task[]
+    students Student?
+    schedules Schedule[]
+
+    @@map("users")
+}
+
+model Student {
+    id              Int    @id @default(autoincrement())
+    course          Int
+    department      String
+    full_name       String
+    group           String
+    record_book_id  Int
+    semester        Int
+    study_direction String
+    study_profile   String
+    year            String
+    userId          Int    @unique
+    user            User   @relation(fields: [userId], references: [tg_id])
+
+    @@map("students")
+}
+
+model Task {
+    id          Int      @id @default(autoincrement())
+    title       String
+    description String
+    deadline    DateTime
+    authorId    Int
+    author      User     @relation(fields: [authorId], references: [tg_id])
+
+    @@map("tasks")
 }
 
 model Schedule {
   id        Int      @id @default(autoincrement())
-  tgId      Int
-  user      User     @relation(fields: [tgId], references: [tgId])
+  tg_id     Int
+  user      User     @relation(fields: [tg_id], references: [tg_id])
 
   semester  String
   week      Int
   weekType  Int
   dayOfWeek Day
   lessons   Lesson[]
+
+  @@unique([tg_id, week, dayOfWeek])
 }
 
 model Lesson {
@@ -38,16 +67,17 @@ model Lesson {
   classroom     String
 
   scheduleId    Int
-  schedule      Schedule @relation(fields: [scheduleId], references: [id])
+  schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, lesson_number])
 }
 
 enum Day {
-  Monday
-  Tuesday
-  Wednesday
-  Thursday
-  Friday
-  Saturday
-  Sunday
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }
-

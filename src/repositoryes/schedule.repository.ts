@@ -1,77 +1,69 @@
-import prisma from './db'
+import prisma from "./db";
 import { Day } from "@prisma/client";
-import type { ScheduleDTO} from '../models/worker.model'
+import type { ScheduleDTO } from "../models/sсhedule.model";
 
-export const createSchedule = async ( tgId:number, schedule: ScheduleDTO) => {
+export const createSchedule = async (
+  tg_id: number,
+  schedule: ScheduleDTO
+) => {
   return prisma.schedule.create({
     data: {
-      tgId,
+      tg_id,
       semester: schedule.semester,
       week: schedule.week,
       weekType: schedule.weekType,
       dayOfWeek: schedule.dayOfWeek,
-
       lessons: {
-        create: schedule.lessons
-      }
+        create: schedule.lessons,
+      },
     },
-
     include: {
-      lessons: true
-    }
+      lessons: true,
+    },
   });
 };
 
-export const createSchedules = async ( tgId:number, schedules: ScheduleDTO[]) => {
-
-   for (const schedule of schedules){
-
-    await createSchedule(
-        tgId,
-        schedule
-    );
-  }
+export const createSchedules = async (
+  tg_id: number,
+  schedules: ScheduleDTO[]
+) => {
+  return Promise.all(
+    schedules.map((schedule) => createSchedule(tg_id, schedule))
+  );
 };
 
-export const getScheduleWeek = async ( tgId: number, weekType: number ) => {
+export const getScheduleWeek = async (tg_id: number, weekType: number) => {
   return prisma.schedule.findMany({
-    where: {
-      tgId,
-      weekType
-    },
-    include: {
-      lessons: true
-    },
-    orderBy: [{
-        dayOfWeek: "asc"
-      }
-    ]
+    where: { tg_id, weekType },
+    include: { lessons: true },
+    orderBy: [{ dayOfWeek: "asc" }],
   });
-}; 
+};
 
-export const getScheduleToday = async ( tgId: number, weekType: number, dayOfWeek: Day ) => {
- return prisma.schedule.findFirst({
-    where: {
-      tgId,
-      weekType,
-      dayOfWeek
-    },
+export const getScheduleToday = async (
+  tg_id: number,
+  weekType: number,
+  dayOfWeek: Day
+) => {
+  return prisma.schedule.findFirst({
+    where: { tg_id, weekType, dayOfWeek },
     include: {
       lessons: {
         orderBy: {
-          lesson_number: "asc"
-        }
-      }
-    }
+          lesson_number: "asc",
+        },
+      },
+    },
   });
 };
 
-export const scheduleExist = async (tgId: number): Promise<boolean> => {
+export const scheduleExist = async (tg_id: number): Promise<boolean> => {
   const schedule = await prisma.schedule.findFirst({
-    where: { tgId },
+    where: { tg_id },
     select: {
-      tgId: true
-    }
+      tg_id: true,
+    },
   });
-  return Boolean(schedule);
+
+  return !!schedule;
 };
