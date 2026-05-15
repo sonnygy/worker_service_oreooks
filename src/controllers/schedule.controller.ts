@@ -8,13 +8,35 @@ import { Day } from '@prisma/client';
 import prisma from '../config/db';
 
 const getStudentGroupId = async (tgId: number): Promise<number> => {
-  const student = await prisma.student.findFirst({
+  let student = await prisma.student.findFirst({
     where: { userId: tgId },
     select: { groupId: true, groupName: true }
   });
   
   if (!student) {
-    throw new Error(`Студент с tgId=${tgId} не найден`);
+    const token = await userRepository.getTokenByTgId(tgId);
+    if (!token) {
+      throw new Error(`Студент с tgId=${tgId} не найден и токен отсутствует`);
+    }
+    
+    const studentInfo = await scheduleService.getStudentInfo(token);
+    
+    student = await prisma.student.create({
+      data: {
+        userId: tgId,
+        groupName: studentInfo.group,
+        course: studentInfo.course,
+        department: studentInfo.department,
+        full_name: studentInfo.full_name,
+        record_book_id: studentInfo.record_book_id,
+        semester: studentInfo.semester,
+        study_direction: studentInfo.study_direction,
+        study_profile: studentInfo.study_profile,
+        year: studentInfo.year,
+        groupId: null,
+      },
+      select: { groupId: true, groupName: true }
+    });
   }
   
   if (!student.groupId) {

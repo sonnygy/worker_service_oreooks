@@ -1,6 +1,6 @@
 import axios from "axios";
 import { createApi } from "../config/axios.schedule";
-import { SemesterStartSchema, GroupIdSchema } from "../schemas/schedule.schema";
+import { SemesterStartSchema, GroupIdSchema, StudentSchema } from "../schemas/schedule.schema";
 import type { ScheduleDTO, LessonDTO } from "../models/sсhedule.model";
 import { Day } from "@prisma/client";
 
@@ -58,6 +58,34 @@ export const getIdGroup = async (token: string): Promise<string> => {
     }
 
     return String(parsed.data.id);
+  } catch (e) {
+    throw handleAxiosError(e);
+  }
+};
+
+export const getStudentInfo = async (token: string): Promise<{
+  course: number;
+  department: string;
+  full_name: string;
+  group: string;
+  record_book_id: number;
+  semester: number;
+  study_direction: string;
+  study_profile: string;
+  year: string;
+}> => {
+  const api = createApi(token);
+
+  try {
+    const { data } = await api.get("/api/v1/student");
+
+    const parsed = StudentSchema.safeParse(data);
+
+    if (!parsed.success) {
+      throw new Error("Некорректный ответ от API ORIOKS (студент)");
+    }
+
+    return parsed.data;
   } catch (e) {
     throw handleAxiosError(e);
   }

@@ -8,6 +8,18 @@ export const GroupIdSchema = z.object({
     id: z.string()
 });
 
+export const StudentSchema = z.object({
+    course: z.number(),
+    department: z.string(),
+    full_name: z.string(),
+    group: z.string(),
+    record_book_id: z.number(),
+    semester: z.number(),
+    study_direction: z.string(),
+    study_profile: z.string(),
+    year: z.string()
+});
+
 export const UserTgIdSchema = z.object({
     tg_id: z.string()
 });
