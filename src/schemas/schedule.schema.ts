@@ -4,9 +4,12 @@ export const SemesterStartSchema = z.object({
     semester_start: z.string()
 });
 
-export const GroupIdSchema = z.object({
-    id: z.string()
-});
+export const GroupIdSchema = z.array(
+  z.object({
+    id: z.union([z.number(), z.string()]),
+    name: z.string().optional()
+  })
+);
 
 export const StudentSchema = z.object({
     course: z.number(),

@@ -49,15 +49,36 @@ export const getIdGroup = async (token: string): Promise<string> => {
   const api = createApi(token);
 
   try {
-    const { data } = await api.get("/api/v1/schedule/groups");
+    const { data, status } = await api.get("/api/v1/schedule/groups");
+    
+    console.error('[DEBUG] API Response status:', status);
+    console.error('[DEBUG] API Response data:', JSON.stringify(data, null, 2));
+
+    // Проверяем, что ответ является массивом
+    if (!Array.isArray(data)) {
+      console.error('[ERROR] API response is not an array:', typeof data);
+      throw new Error(`Некорректный формат ответа API: ожидался массив, получен ${typeof data}`);
+    }
 
     const parsed = GroupIdSchema.safeParse(data);
 
     if (!parsed.success) {
+      console.error('GroupIdSchema validation error:', parsed.error);
+      console.error('Raw API response:', data);
       throw new Error("Некорректный ответ от API ORIOKS");
     }
 
-    return String(parsed.data.id);
+    if (!parsed.data.length) {
+      throw new Error("Массив групп пуст");
+    }
+
+    const firstGroup = parsed.data[0];
+    if (!firstGroup || !firstGroup.id) {
+      throw new Error("ID группы отсутствует");
+    }
+
+    // Берем первую группу из массива
+    return String(firstGroup.id);
   } catch (e) {
     throw handleAxiosError(e, { functionName: 'getIdGroup' });
   }
@@ -233,5 +254,13 @@ const handleAxiosError = (e: unknown, context?: { tgId?: number, functionName?: 
   }
 
   console.error(`[${timestamp}] Non-Axios error:`, e);
+  if (e instanceof Error) {
+    console.error(`[${timestamp}] Non-Axios error message: ${e.message}`);
+    console.error(`[${timestamp}] Non-Axios error stack: ${e.stack}`);
+    // Если это ошибка валидации Zod, выведем детали
+    if ('errors' in e && Array.isArray((e as any).errors)) {
+      console.error(`[${timestamp}] Zod validation errors:`, (e as any).errors);
+    }
+  }
   return new Error("Неизвестная ошибка при обращении к API");
 };

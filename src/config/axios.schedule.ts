@@ -8,8 +8,10 @@ export const createApi = (token: string) => {
     timeout: 10000,
     headers: {
       Accept: "application/json",
+      "Content-Type": "application/json",
       Authorization: createTokenHeader(token),
-      "User-Agent": "Oreooks-bot/1.0 Windows 11"
+      "User-Agent": "Oreooks/1.0 Windows 10",
+      "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8"
     }
   });
 
@@ -27,6 +29,29 @@ export const createApi = (token: string) => {
     });
     return config;
   });
+
+  api.interceptors.response.use(
+    (response) => {
+      console.debug(`[${new Date().toISOString()}] ORIOKS Response:`, {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
+      });
+      return response;
+    },
+    (error) => {
+      if (axios.isAxiosError(error)) {
+        console.debug(`[${new Date().toISOString()}] ORIOKS Error Response:`, {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          code: error.code,
+          message: error.message
+        });
+      }
+      return Promise.reject(error);
+    }
+  );
 
   return api;
 };
