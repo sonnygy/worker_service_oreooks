@@ -1,96 +1,94 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 model User {
-    tg_id    Int      @id
-    token    String
-    tasks    Task[]
-    students Student?
+  tg_id    Int      @id
+  token    String
+  students Student?
+  tasks    Task[]
 
-    @@map("users")
+  @@map("users")
 }
 
 model Student {
-    id              Int    @id @default(autoincrement())
-    course          Int
-    department      String
-    full_name       String
-    groupName       String
-    record_book_id  Int
-    semester        Int
-    study_direction String
-    study_profile   String
-    year            String
-    userId          Int    @unique
-    user            User   @relation(fields: [userId], references: [tg_id])
-    groupId         Int?
-    group           Group? @relation(fields: [groupId], references: [id])
+  id              Int    @id @default(autoincrement())
+  course          Int
+  department      String
+  full_name       String
+  groupName       String
+  record_book_id  Int
+  semester        Int
+  study_direction String
+  study_profile   String
+  year            String
+  userId          Int    @unique
+  groupId         Int?
+  group           Group? @relation(fields: [groupId], references: [id])
+  user            User   @relation(fields: [userId], references: [tg_id])
 
-    @@map("students")
+  @@map("students")
 }
 
 model Task {
-    id          Int      @id @default(autoincrement())
-    title       String
-    description String
-    deadline    DateTime
-    authorId    Int
-    state       String   @default("draft")
-    author      User     @relation(fields: [authorId], references: [tg_id])
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  deadline    DateTime
+  authorId    Int
+  state       String   @default("draft")
+  author      User     @relation(fields: [authorId], references: [tg_id])
 
-    @@map("tasks")
+  @@map("tasks")
 }
 
 model Group {
-    id        Int        @id @default(autoincrement())
-    name      String     @unique
-    students  Student[]
-    schedules Schedule[]
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  schedules Schedule[]
+  students  Student[]
 
-    @@map("groups")
+  @@map("groups")
 }
 
 model Schedule {
-    id        Int      @id @default(autoincrement())
-    groupId   Int
-    group     Group    @relation(fields: [groupId], references: [id])
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  semester  String
+  week      Int
+  weekType  Int
+  dayOfWeek Day
+  lessons   Lesson[]
+  group     Group    @relation(fields: [groupId], references: [id])
 
-    semester  String
-    week      Int
-    weekType  Int
-    dayOfWeek Day
-    lessons   Lesson[]
-
-    @@unique([groupId, week, dayOfWeek])
-    @@map("schedules")
+  @@unique([groupId, week, dayOfWeek])
+  @@map("schedules")
 }
 
 model Lesson {
-    id            Int      @id @default(autoincrement())
-    lesson_number Int
-    lesson_name   String
-    lesson_type   String
-    teacher       String
-    classroom     String
+  id            Int      @id @default(autoincrement())
+  lesson_number Int
+  lesson_name   String
+  lesson_type   String
+  teacher       String
+  classroom     String
+  scheduleId    Int
+  schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
-    scheduleId    Int
-    schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-
-    @@unique([scheduleId, lesson_number])
-    @@map("lessons")
+  @@unique([scheduleId, lesson_number])
+  @@map("lessons")
 }
 
 enum Day {
-    Monday
-    Tuesday
-    Wednesday
-    Thursday
-    Friday
-    Saturday
-    Sunday
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
 }
