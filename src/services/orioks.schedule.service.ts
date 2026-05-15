@@ -45,16 +45,15 @@ export const getWeekType = async (token: string): Promise<number> => {
   return ((week - 1) % 4 + 4) % 4;
 };
 
-export const getIdGroup = async (token: string): Promise<string> => {
+export const getGroups = async (token: string): Promise<Array<{ id: string | number; name?: string | undefined }>> => {
   const api = createApi(token);
 
   try {
     const { data, status } = await api.get("/api/v1/schedule/groups");
     
-    console.error('[DEBUG] API Response status:', status);
-    console.error('[DEBUG] API Response data:', JSON.stringify(data, null, 2));
+    console.error('[DEBUG] getGroups: API Response status:', status);
+    console.error('[DEBUG] getGroups: API Response data:', JSON.stringify(data, null, 2));
 
-    // Проверяем, что ответ является массивом
     if (!Array.isArray(data)) {
       console.error('[ERROR] API response is not an array:', typeof data);
       throw new Error(`Некорректный формат ответа API: ожидался массив, получен ${typeof data}`);
@@ -72,16 +71,43 @@ export const getIdGroup = async (token: string): Promise<string> => {
       throw new Error("Массив групп пуст");
     }
 
-    const firstGroup = parsed.data[0];
-    if (!firstGroup || !firstGroup.id) {
-      throw new Error("ID группы отсутствует");
+    return parsed.data;
+  } catch (e) {
+    throw handleAxiosError(e, { functionName: 'getGroups' });
+  }
+};
+
+export const getIdGroup = async (token: string, studentGroupName?: string): Promise<string> => {
+  const groups = await getGroups(token);
+
+  if (studentGroupName) {
+    // Ищем группу по имени (точное или частичное совпадение)
+    const normalizedTarget = studentGroupName.trim().toLowerCase();
+    let matchedGroup = groups.find(g => g.name && g.name.trim().toLowerCase() === normalizedTarget);
+    
+    if (!matchedGroup) {
+      // Попробуем частичное совпадение (например, "ДПК-20-007/4" vs "ДПК-20-007/4 (2020 г.)")
+      matchedGroup = groups.find(g => g.name && g.name.trim().toLowerCase().includes(normalizedTarget));
     }
 
-    // Берем первую группу из массива
-    return String(firstGroup.id);
-  } catch (e) {
-    throw handleAxiosError(e, { functionName: 'getIdGroup' });
+    if (!matchedGroup) {
+      console.error('[WARN] Cannot find group by name:', studentGroupName);
+      console.error('[WARN] Available groups:', groups.map(g => ({ id: g.id, name: g.name })));
+      // fallback to first group
+    } else {
+      console.error('[DEBUG] Matched group:', matchedGroup);
+      return String(matchedGroup.id);
+    }
   }
+
+  // Если имя группы не указано или не найдено, берем первую группу (для обратной совместимости)
+  const firstGroup = groups[0];
+  if (!firstGroup || !firstGroup.id) {
+    throw new Error("ID группы отсутствует");
+  }
+
+  console.error('[DEBUG] Using first group:', firstGroup);
+  return String(firstGroup.id);
 };
 
 export const getStudentInfo = async (token: string): Promise<{
@@ -98,16 +124,23 @@ export const getStudentInfo = async (token: string): Promise<{
   const api = createApi(token);
 
   try {
-    const { data } = await api.get("/api/v1/student");
+    const { data, status } = await api.get("/api/v1/student");
+    
+    console.error('[DEBUG] getStudentInfo: response status =', status);
+    console.error('[DEBUG] getStudentInfo: response data =', JSON.stringify(data, null, 2));
 
     const parsed = StudentSchema.safeParse(data);
 
     if (!parsed.success) {
+      console.error('[ERROR] StudentSchema validation error:', parsed.error);
+      console.error('[ERROR] Raw student data:', data);
       throw new Error("Некорректный ответ от API ORIOKS (студент)");
     }
 
+    console.error('[DEBUG] getStudentInfo: parsed data =', parsed.data);
     return parsed.data;
   } catch (e) {
+    console.error('[ERROR] getStudentInfo failed:', e);
     throw handleAxiosError(e, { functionName: 'getStudentInfo' });
   }
 };
@@ -125,20 +158,55 @@ export const getLessonTime = async (token: string): Promise<any> => {
 
 export const getSchedule = async (token: string): Promise<ScheduleDTO[]> => {
   const api = createApi(token);
-  const idGroup = await getIdGroup(token);
+  
+  // Получаем информацию о студенте, чтобы узнать его группу
+  let studentGroupName: string | undefined;
+  try {
+    const studentInfo = await getStudentInfo(token);
+    studentGroupName = studentInfo.group;
+    console.error('[DEBUG] getSchedule: student group name =', studentGroupName);
+  } catch (e) {
+    console.error('[WARN] getSchedule: failed to get student info, will use default group selection', e);
+  }
+  
+  const idGroup = await getIdGroup(token, studentGroupName);
+  
+  console.error('[DEBUG] getSchedule: idGroup =', idGroup);
+  console.error('[DEBUG] getSchedule: request URL =', `/api/v1/schedule/groups/${idGroup}`);
 
   try {
-    const { data } = await api.get(`/api/v1/schedule/groups/${idGroup}`);
+    const { data, status } = await api.get(`/api/v1/schedule/groups/${idGroup}`);
+    
+    console.error('[DEBUG] getSchedule: response status =', status);
+    console.error('[DEBUG] getSchedule: response data keys =', Object.keys(data));
+    console.error('[DEBUG] getSchedule: full response =', JSON.stringify(data, null, 2));
 
     const weekKey = Object.keys(data).find((k) => !isNaN(Number(k)));
 
-    if (!weekKey) throw new Error("Week not found");
+    if (!weekKey) {
+      console.error('[ERROR] Week not found in response. Available keys:', Object.keys(data));
+      throw new Error("Week not found");
+    }
+
+    console.error('[DEBUG] getSchedule: weekKey =', weekKey);
 
     const weekData = data[weekKey];
+    
+    if (!weekData || typeof weekData !== 'object') {
+      console.error('[ERROR] weekData is invalid:', weekData);
+      throw new Error("Invalid week data structure");
+    }
 
     const schedules: ScheduleDTO[] = [];
 
     for (const [dayKey, rawLessons] of Object.entries(weekData)) {
+      console.error('[DEBUG] Processing day:', dayKey);
+      
+      if (!rawLessons || typeof rawLessons !== 'object') {
+        console.warn(`[WARN] Skipping day ${dayKey}: rawLessons is invalid`, rawLessons);
+        continue;
+      }
+
       const lessons = Object.entries(rawLessons as any).map(
         ([lessonNumber, lesson]: any) => ({
           lesson_number: Number(lessonNumber),
@@ -158,8 +226,10 @@ export const getSchedule = async (token: string): Promise<ScheduleDTO[]> => {
       });
     }
 
+    console.error('[DEBUG] getSchedule: successfully parsed', schedules.length, 'days');
     return schedules;
   } catch (e) {
+    console.error('[ERROR] getSchedule failed with error:', e);
     throw handleAxiosError(e, { functionName: 'getSchedule' });
   }
 };

@@ -12,12 +12,12 @@ export const GroupIdSchema = z.array(
 );
 
 export const StudentSchema = z.object({
-    course: z.number(),
+    course: z.union([z.number(), z.string()]).transform(val => Number(val)),
     department: z.string(),
     full_name: z.string(),
     group: z.string(),
-    record_book_id: z.number(),
-    semester: z.number(),
+    record_book_id: z.union([z.number(), z.string()]).transform(val => Number(val)),
+    semester: z.union([z.number(), z.string()]).transform(val => Number(val)),
     study_direction: z.string(),
     study_profile: z.string(),
     year: z.string()
