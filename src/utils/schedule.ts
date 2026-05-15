@@ -22,7 +22,7 @@ const getDayByOffset = (offset = 0): Day => {
 
   const index = normalizeIndex(jsDay + offset);
 
-  return days[index];
+  return days[index] as Day;
 };
 
 export const getTodayDay = () => getDayByOffset();

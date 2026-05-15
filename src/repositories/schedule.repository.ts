@@ -1,4 +1,4 @@
-import prisma from "./db";
+import prisma from "../config/db";
 import { Day } from "@prisma/client";
 import type { ScheduleDTO } from "../models/sсhedule.model";
 

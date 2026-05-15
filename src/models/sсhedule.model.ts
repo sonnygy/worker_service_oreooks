@@ -8,17 +8,17 @@ export const weekType = {
 };
 
 export type ScheduleDTO = {
-  semester: string;
-  week: number;
-  weekType: number;
-  dayOfWeek: Day;
-  lessons: LessonDTO[];
-}
+  semester: string,
+  week: number,
+  weekType: number,
+  dayOfWeek: Day,
+  lessons: LessonDTO[]
+};
 
 export type LessonDTO = {
-  lesson_number: number
-  lesson_name: string
-  lesson_type: string
-  teacher: string
+  lesson_number: number,
+  lesson_name: string,
+  lesson_type: string,
+  teacher: string,
   classroom: string
 };

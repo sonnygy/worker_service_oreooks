@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import * as scheduleService from '../services/orioks.schedule.service';
-import * as scheduleDb from '../repositoryes/schedule.repository';
-import * as userRepository from '../repositoryes/user.repository'
+import * as scheduleDb from '../repositories/schedule.repository';
+import * as userRepository from '../repositories/user.repository'
 import * as scheduleUtils from '../utils/schedule'
 import { UserTgIdSchema, UserTgIdTypeDaySchema} from '../schemas/schedule.schema'
 

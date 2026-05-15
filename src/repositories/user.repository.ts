@@ -1,4 +1,4 @@
-import prisma from './db';
+import prisma from '../config/db';
 
 export const getTokenByTgId = async (tg_id: number): Promise<string | null> => {
   try {
