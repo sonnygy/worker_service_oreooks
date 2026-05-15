@@ -11,7 +11,6 @@ model User {
     token    String
     tasks    Task[]
     students Student?
-    schedules Schedule[]
 
     @@map("users")
 }
@@ -21,7 +20,7 @@ model Student {
     course          Int
     department      String
     full_name       String
-    group           String
+    groupName       String
     record_book_id  Int
     semester        Int
     study_direction String
@@ -29,6 +28,8 @@ model Student {
     year            String
     userId          Int    @unique
     user            User   @relation(fields: [userId], references: [tg_id])
+    groupId         Int?
+    group           Group? @relation(fields: [groupId], references: [id])
 
     @@map("students")
 }
@@ -39,45 +40,57 @@ model Task {
     description String
     deadline    DateTime
     authorId    Int
+    state       String   @default("draft")
     author      User     @relation(fields: [authorId], references: [tg_id])
 
     @@map("tasks")
 }
 
+model Group {
+    id        Int        @id @default(autoincrement())
+    name      String     @unique
+    students  Student[]
+    schedules Schedule[]
+
+    @@map("groups")
+}
+
 model Schedule {
-  id        Int      @id @default(autoincrement())
-  tg_id     Int
-  user      User     @relation(fields: [tg_id], references: [tg_id])
+    id        Int      @id @default(autoincrement())
+    groupId   Int
+    group     Group    @relation(fields: [groupId], references: [id])
 
-  semester  String
-  week      Int
-  weekType  Int
-  dayOfWeek Day
-  lessons   Lesson[]
+    semester  String
+    week      Int
+    weekType  Int
+    dayOfWeek Day
+    lessons   Lesson[]
 
-  @@unique([tg_id, week, dayOfWeek])
+    @@unique([groupId, week, dayOfWeek])
+    @@map("schedules")
 }
 
 model Lesson {
-  id            Int      @id @default(autoincrement())
-  lesson_number Int
-  lesson_name   String
-  lesson_type   String
-  teacher       String
-  classroom     String
+    id            Int      @id @default(autoincrement())
+    lesson_number Int
+    lesson_name   String
+    lesson_type   String
+    teacher       String
+    classroom     String
 
-  scheduleId    Int
-  schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+    scheduleId    Int
+    schedule      Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
-  @@unique([scheduleId, lesson_number])
+    @@unique([scheduleId, lesson_number])
+    @@map("lessons")
 }
 
 enum Day {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
+    Monday
+    Tuesday
+    Wednesday
+    Thursday
+    Friday
+    Saturday
+    Sunday
 }

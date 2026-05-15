@@ -5,13 +5,13 @@ export function createTokenHeader(token: string): string {
 }
 
 const days: Day[] = [
-  Day.MONDAY,
-  Day.TUESDAY,
-  Day.WEDNESDAY,
-  Day.THURSDAY,
-  Day.FRIDAY,
-  Day.SATURDAY,
-  Day.SUNDAY,
+  Day.Monday,
+  Day.Tuesday,
+  Day.Wednesday,
+  Day.Thursday,
+  Day.Friday,
+  Day.Saturday,
+  Day.Sunday,
 ];
 
 const normalizeIndex = (index: number) => ((index % 7) + 7) % 7;

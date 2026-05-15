@@ -117,13 +117,13 @@ export const getSchedule = async (token: string): Promise<ScheduleDTO[]> => {
 
 const mapDay = (day: string): Day => {
   const map: Record<string, Day> = {
-    monday: Day.MONDAY,
-    tuesday: Day.TUESDAY,
-    wednesday: Day.WEDNESDAY,
-    thursday: Day.THURSDAY,
-    friday: Day.FRIDAY,
-    saturday: Day.SATURDAY,
-    sunday: Day.SUNDAY,
+    monday: Day.Monday,
+    tuesday: Day.Tuesday,
+    wednesday: Day.Wednesday,
+    thursday: Day.Thursday,
+    friday: Day.Friday,
+    saturday: Day.Saturday,
+    sunday: Day.Sunday,
   };
 
   const result = map[day.toLowerCase()];
