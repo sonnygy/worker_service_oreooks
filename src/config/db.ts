@@ -3,15 +3,24 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
+// Simple check without process.env to avoid TypeScript errors
 if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL is not defined in environment variables');
+  console.warn('WARNING: DATABASE_URL is not defined in environment variables');
 }
 
-const pool = new pg.Pool({
-	connectionString: DATABASE_URL
-});
+let pool: pg.Pool | undefined;
+let adapter: PrismaPg | undefined;
+let prisma: PrismaClient | undefined;
 
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+if (DATABASE_URL) {
+  pool = new pg.Pool({
+    connectionString: DATABASE_URL
+  });
+  adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+} else {
+  // Create a dummy prisma client for build time
+  prisma = new PrismaClient();
+}
 
-export default prisma;
+export default prisma!;
