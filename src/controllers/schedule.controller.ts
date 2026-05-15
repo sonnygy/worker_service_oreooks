@@ -19,7 +19,39 @@ const getStudentGroupId = async (tgId: number): Promise<number> => {
       throw new Error(`Студент с tgId=${tgId} не найден и токен отсутствует`);
     }
     
-    const studentInfo = await scheduleService.getStudentInfo(token);
+    let studentInfo = null;
+    try {
+      studentInfo = await scheduleService.getStudentInfo(token);
+    } catch (error) {
+      console.warn(`Не удалось получить информацию о студенте tgId=${tgId}:`, error);
+      try {
+        const groupIdStr = await scheduleService.getIdGroup(token);
+        studentInfo = {
+          group: groupIdStr,
+          course: 1,
+          department: '',
+          full_name: '',
+          record_book_id: 0,
+          semester: 1,
+          study_direction: '',
+          study_profile: '',
+          year: new Date().getFullYear().toString()
+        };
+      } catch (groupError) {
+        console.error(`Не удалось получить группу для tgId=${tgId}:`, groupError);
+        studentInfo = {
+          group: 'unknown',
+          course: 1,
+          department: '',
+          full_name: '',
+          record_book_id: 0,
+          semester: 1,
+          study_direction: '',
+          study_profile: '',
+          year: new Date().getFullYear().toString()
+        };
+      }
+    }
     
     student = await prisma.student.create({
       data: {
