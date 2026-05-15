@@ -3,7 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-// Simple check without process.env to avoid TypeScript errors
 if (!DATABASE_URL) {
   console.warn('WARNING: DATABASE_URL is not defined in environment variables');
 }
@@ -19,7 +18,6 @@ if (DATABASE_URL) {
   adapter = new PrismaPg(pool);
   prisma = new PrismaClient({ adapter });
 } else {
-  // Create a dummy prisma client for build time
   prisma = new PrismaClient();
 }
 

@@ -18,7 +18,7 @@ export const getSemesterStart = async (token: string): Promise<string> => {
 
     return parsed.data.semester_start;
   } catch (e) {
-    throw handleAxiosError(e);
+    throw handleAxiosError(e, { functionName: 'getSemesterStart' });
   }
 };
 
@@ -59,7 +59,7 @@ export const getIdGroup = async (token: string): Promise<string> => {
 
     return String(parsed.data.id);
   } catch (e) {
-    throw handleAxiosError(e);
+    throw handleAxiosError(e, { functionName: 'getIdGroup' });
   }
 };
 
@@ -87,7 +87,7 @@ export const getStudentInfo = async (token: string): Promise<{
 
     return parsed.data;
   } catch (e) {
-    throw handleAxiosError(e);
+    throw handleAxiosError(e, { functionName: 'getStudentInfo' });
   }
 };
 
@@ -98,7 +98,7 @@ export const getLessonTime = async (token: string): Promise<any> => {
     const { data } = await api.get("/api/v1/schedule/timetable");
     return data;
   } catch (e) {
-    throw handleAxiosError(e);
+    throw handleAxiosError(e, { functionName: 'getLessonTime' });
   }
 };
 
@@ -139,7 +139,7 @@ export const getSchedule = async (token: string): Promise<ScheduleDTO[]> => {
 
     return schedules;
   } catch (e) {
-    throw handleAxiosError(e);
+    throw handleAxiosError(e, { functionName: 'getSchedule' });
   }
 };
 
@@ -163,16 +163,43 @@ const mapDay = (day: string): Day => {
   return result;
 };
 
-const handleAxiosError = (e: unknown): Error => {
+const handleAxiosError = (e: unknown, context?: { tgId?: number, functionName?: string }): Error => {
+  const timestamp = new Date().toISOString();
+  
   if (axios.isAxiosError(e)) {
     const status = e.response?.status;
     const url = e.config?.url;
+    const baseURL = e.config?.baseURL;
     const method = e.config?.method?.toUpperCase();
     const responseData = e.response?.data;
+    const fullUrl = baseURL ? `${baseURL}${url}` : url;
+    const headers = e.config?.headers;
+    const authHeaderValue = headers?.Authorization;
+    const authHeader = typeof authHeaderValue === 'string' ?
+      `${authHeaderValue.substring(0, 15)}...` : 'none';
+    const errorCode = e.code;
+    const errorMessage = e.message;
     
-    console.error(`API Error: ${method} ${url} - Status: ${status}`);
-    console.error('Response data:', responseData);
-    console.error('Full error:', e.message);
+    console.error(`[${timestamp}] API Error:`, {
+      method,
+      fullUrl,
+      baseURL,
+      endpoint: url,
+      status,
+      errorCode,
+      errorMessage,
+      context,
+      authHeaderPreview: authHeader,
+      responseData,
+      stack: e.stack?.split('\n').slice(0, 3).join(' ')
+    });
+
+    // Детальное логирование для сетевых ошибок
+    if (errorCode === 'ETIMEDOUT' || errorCode === 'ECONNREFUSED' || errorCode === 'ENETUNREACH') {
+      console.error(`[${timestamp}] Сетевая ошибка: ${errorCode} - ${errorMessage}`);
+      console.error(`[${timestamp}] Целевой сервер: ${baseURL}`);
+      console.error(`[${timestamp}] Порт: 443 (HTTPS)`);
+    }
 
     switch (status) {
       case 400:
@@ -193,10 +220,18 @@ const handleAxiosError = (e: unknown): Error => {
       case 504:
         return new Error("Сервер API временно недоступен");
       default:
-        return new Error(`Ошибка API (${status ?? "unknown"}): ${e.message}`);
+        // Для сетевых ошибок (status undefined) возвращаем более информативное сообщение
+        if (errorCode === 'ETIMEDOUT') {
+          return new Error(`Таймаут соединения с сервером ORIOKS: ${errorMessage}`);
+        } else if (errorCode === 'ECONNREFUSED') {
+          return new Error(`Сервер ORIOKS отказал в соединении: ${errorMessage}`);
+        } else if (errorCode === 'ENETUNREACH') {
+          return new Error(`Сеть недоступна: ${errorMessage}`);
+        }
+        return new Error(`Ошибка API (${status ?? errorCode ?? "unknown"}): ${errorMessage}`);
     }
   }
 
-  console.error('Non-Axios error:', e);
+  console.error(`[${timestamp}] Non-Axios error:`, e);
   return new Error("Неизвестная ошибка при обращении к API");
 };
