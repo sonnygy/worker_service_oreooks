@@ -1,0 +1,66 @@
+◇ injected env (1) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+-- CreateEnum
+CREATE TYPE "Day" AS ENUM ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+
+-- AlterTable
+ALTER TABLE "students" DROP COLUMN "group",
+ADD COLUMN     "groupId" INTEGER,
+ADD COLUMN     "groupName" TEXT NOT NULL;
+
+-- AlterTable
+ALTER TABLE "tasks" ALTER COLUMN "state" SET NOT NULL;
+
+-- DropTable
+DROP TABLE "events";
+
+-- CreateTable
+CREATE TABLE "groups" (
+    "id" SERIAL NOT NULL,
+    "name" TEXT NOT NULL,
+
+    CONSTRAINT "groups_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "schedules" (
+    "id" SERIAL NOT NULL,
+    "groupId" INTEGER NOT NULL,
+    "semester" TEXT NOT NULL,
+    "week" INTEGER NOT NULL,
+    "weekType" INTEGER NOT NULL,
+    "dayOfWeek" "Day" NOT NULL,
+
+    CONSTRAINT "schedules_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "lessons" (
+    "id" SERIAL NOT NULL,
+    "lesson_number" INTEGER NOT NULL,
+    "lesson_name" TEXT NOT NULL,
+    "lesson_type" TEXT NOT NULL,
+    "teacher" TEXT NOT NULL,
+    "classroom" TEXT NOT NULL,
+    "scheduleId" INTEGER NOT NULL,
+
+    CONSTRAINT "lessons_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "groups_name_key" ON "groups"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "schedules_groupId_week_dayOfWeek_key" ON "schedules"("groupId", "week", "dayOfWeek");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "lessons_scheduleId_lesson_number_key" ON "lessons"("scheduleId", "lesson_number");
+
+-- AddForeignKey
+ALTER TABLE "students" ADD CONSTRAINT "students_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "groups"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "schedules" ADD CONSTRAINT "schedules_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "groups"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "lessons" ADD CONSTRAINT "lessons_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "schedules"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
