@@ -166,22 +166,37 @@ const mapDay = (day: string): Day => {
 const handleAxiosError = (e: unknown): Error => {
   if (axios.isAxiosError(e)) {
     const status = e.response?.status;
+    const url = e.config?.url;
+    const method = e.config?.method?.toUpperCase();
+    const responseData = e.response?.data;
+    
+    console.error(`API Error: ${method} ${url} - Status: ${status}`);
+    console.error('Response data:', responseData);
+    console.error('Full error:', e.message);
 
     switch (status) {
       case 400:
-        return new Error("Некорректный запрос");
+        return new Error("Некорректный запрос к API");
       case 401:
-        return new Error("Неверный токен");
+        return new Error("Неверный токен авторизации");
+      case 403:
+        return new Error("Доступ запрещен");
       case 404:
-        return new Error("Ресурс не найден");
+        return new Error(`Ресурс не найден: ${url}`);
       case 405:
         return new Error("Метод не поддерживается");
       case 410:
         return new Error("API устарел");
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return new Error("Сервер API временно недоступен");
       default:
-        return new Error(`Ошибка API: ${status ?? "unknown"}`);
+        return new Error(`Ошибка API (${status ?? "unknown"}): ${e.message}`);
     }
   }
 
-  return new Error("Неизвестная ошибка API");
+  console.error('Non-Axios error:', e);
+  return new Error("Неизвестная ошибка при обращении к API");
 };
